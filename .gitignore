@@ -1,0 +1,47 @@
+# ============================================================
+# Verifiable Federated Unlearning — .gitignore
+# ============================================================
+
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+
+# ── Virtual Environments ─────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Dataset (large, re-downloadable) ────────────────────────
+data/raw/
+
+# ── Training Outputs (large, reproduced from code + config) ─
+outputs/
+
+# ── IDE ──────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# ── Jupyter ──────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── OS ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Testing / Coverage ──────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ── TensorBoard ─────────────────────────────────────────────
+runs/

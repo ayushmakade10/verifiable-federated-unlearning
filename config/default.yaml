@@ -1,0 +1,56 @@
+# ============================================================
+# Verifiable Federated Unlearning — Default Configuration
+# ============================================================
+# This file is the single source of truth for every tunable
+# parameter. It is frozen (copied) into each run's output
+# directory so that any result can be traced back to its exact
+# settings.
+#
+# Recommended "best-practice" defaults for a Master's-level
+# evaluation on CIFAR-10 / ResNet-18 / FedAvg.
+# ============================================================
+
+project_name: "verifiable-federated-unlearning"
+
+# ── Data & Partitioning ─────────────────────────────────────
+data:
+  dataset: "cifar10"
+  num_clients: 50
+  alpha: 0.3                 # Dirichlet concentration parameter.
+                             #   0.3 → meaningfully non-IID (2-3 dominant classes per client).
+                             #   Provides strong per-client signature for verification
+                             #   without causing training instability.
+  batch_size: 64
+  data_root: "./data/raw"
+
+# ── Model ────────────────────────────────────────────────────
+model:
+  architecture: "resnet18"
+  num_classes: 10
+
+# ── Federation (FedAvg) ─────────────────────────────────────
+federation:
+  num_rounds: 200            # Sufficient for convergence (~85-90% accuracy).
+  local_epochs: 5            # Standard FedAvg; balances communication vs drift.
+  participation_rate: 0.4    # 20 of 50 clients per round. Realistic partial
+                             # participation that introduces natural variance.
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005       # 5e-4, standard for ResNet on CIFAR-10.
+  optimizer: "sgd"
+
+# ── Checkpointing ───────────────────────────────────────────
+checkpoint:
+  save_every_n_rounds: 10    # 20 checkpoints over 200 rounds.
+  save_final: true
+  output_dir: "./outputs"
+
+# ── Gold Standard Retraining ────────────────────────────────
+gold_standard:
+  num_trials: 10             # Independent retraining runs per target client.
+                             # Enough for stable percentile-based thresholds.
+
+# ── Reproducibility ─────────────────────────────────────────
+reproducibility:
+  root_seed: 42
+  deterministic_cudnn: true  # Sacrifices ~5-10% speed for exact reproducibility.

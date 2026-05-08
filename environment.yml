@@ -1,0 +1,14 @@
+name: vfu
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch=2.3.1
+  - torchvision=0.18.1
+  - cpuonly
+  - numpy
+  - pyyaml
+  - pip
+  - pip:
+      - pydantic>=2.0,<3.0
