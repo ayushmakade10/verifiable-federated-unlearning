@@ -15,8 +15,11 @@ Usage:
 
 from __future__ import annotations
 
+# Pylint cannot introspect Pydantic model fields (reports FieldInfo
+# has no member). All E1101 in this file are false positives.
+# pylint: disable=no-member
+
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -61,6 +64,7 @@ class FederationConfig(BaseModel):
     @field_validator("optimizer")
     @classmethod
     def validate_optimizer(cls, v: str) -> str:
+        """Ensure optimizer is one of the supported options."""
         allowed = {"sgd", "adam"}
         if v.lower() not in allowed:
             raise ValueError(f"Optimizer must be one of {allowed}, got '{v}'")
@@ -109,6 +113,7 @@ class ProjectConfig(BaseModel):
 
     @model_validator(mode="after")
     def checkpoint_interval_within_rounds(self) -> "ProjectConfig":
+        """Ensure checkpoint interval does not exceed total rounds."""
         if self.checkpoint.save_every_n_rounds > self.federation.num_rounds:
             raise ValueError(
                 f"Checkpoint interval ({self.checkpoint.save_every_n_rounds}) "
@@ -129,7 +134,7 @@ def load_config(path: str | Path) -> ProjectConfig:
     if not path.exists():
         raise FileNotFoundError(f"Config file not found: {path}")
 
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         raw = yaml.safe_load(f)
 
     return ProjectConfig(**raw)

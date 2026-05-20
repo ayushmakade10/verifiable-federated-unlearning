@@ -44,7 +44,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data
@@ -322,6 +321,7 @@ def train(
         num_clients=num_clients,
         participation_rate=config.federation.participation_rate,
         rounds=initial_log,
+        available_clients=available_clients,
     )
 
     # ── Training loop ────────────────────────────────────────────

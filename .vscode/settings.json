@@ -2,6 +2,7 @@
     "python.defaultInterpreterPath": "C:\\Users\\ayush\\anaconda3\\envs\\vfu\\python.exe",
     "python.analysis.typeCheckingMode": "off",
     "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticMode": "workspace",
     "editor.formatOnSave": true,
     "editor.rulers": [88],
     "files.trimTrailingWhitespace": true,

@@ -58,7 +58,6 @@ def partition_by_dirichlet(
     """
     rng = np.random.RandomState(seed)
     num_classes = int(labels.max()) + 1
-    num_samples = len(labels)
 
     # Group sample indices by class.
     class_indices: Dict[int, np.ndarray] = {
@@ -143,13 +142,13 @@ def save_partition(
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     serialisable = {str(k): v for k, v in partition.items()}
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(serialisable, f)
 
 
 def load_partition(path: str | Path) -> Dict[int, List[int]]:
     """Load a saved partition, restoring integer keys."""
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         raw = json.load(f)
     return {int(k): v for k, v in raw.items()}
 

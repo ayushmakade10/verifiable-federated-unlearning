@@ -65,7 +65,7 @@ def derive_seed(root_seed: int, purpose: str) -> int:
     return int(digest[:8], 16) % (2**31)
 
 
-def seed_worker(worker_id: int) -> None:
+def seed_worker(_worker_id: int) -> None:
     """DataLoader worker initializer for reproducible data loading.
 
     PyTorch DataLoader workers each get their own PRNG state. Without

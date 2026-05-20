@@ -17,7 +17,6 @@ Usage:
 
 from __future__ import annotations
 
-import copy
 from typing import Dict, List, Tuple
 
 import torch
@@ -61,10 +60,10 @@ def fed_avg(
 
     # Cast back to original dtypes (BN running stats may be float32 already,
     # but integer counts like num_batches_tracked need to stay as-is).
-    for key in avg_state:
+    for key, value in avg_state.items():
         original_dtype = first_sd[key].dtype
-        if original_dtype != avg_state[key].dtype:
-            avg_state[key] = avg_state[key].to(original_dtype)
+        if original_dtype != value.dtype:
+            avg_state[key] = value.to(original_dtype)
 
     return avg_state
 

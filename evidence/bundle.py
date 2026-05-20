@@ -35,7 +35,7 @@ import json
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import yaml
 
@@ -81,7 +81,7 @@ def save_frozen_config_from_dict(
     run_dir = Path(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     dest = run_dir / "config.yaml"
-    with open(dest, "w") as f:
+    with open(dest, "w", encoding="utf-8") as f:
         yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
     return dest
 
@@ -159,7 +159,7 @@ def build_manifest(
     }
 
     manifest_path = run_dir / "manifest.json"
-    with open(manifest_path, "w") as f:
+    with open(manifest_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 
     return manifest_path
@@ -217,7 +217,7 @@ def create_unlearning_request(
     }
 
     path = run_dir / "unlearning_request.json"
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(request, f, indent=2)
 
     return path
@@ -242,7 +242,7 @@ if __name__ == "__main__":
         # 2. Create a dummy final model and participation log.
         import torch
         torch.save({"w": torch.randn(3)}, run_dir / "final_model.pt")
-        with open(run_dir / "participation_log.json", "w") as f:
+        with open(run_dir / "participation_log.json", "w", encoding="utf-8") as f:
             json.dump({"rounds": []}, f)
 
         # 3. Create checkpoint.
@@ -258,7 +258,7 @@ if __name__ == "__main__":
             total_rounds=10,
         )
         assert manifest_path.exists()
-        with open(manifest_path) as f:
+        with open(manifest_path, encoding="utf-8") as f:
             m = json.load(f)
         assert "config.yaml" in m["file_hashes"]
         assert "final_model.pt" in m["file_hashes"]
@@ -275,7 +275,7 @@ if __name__ == "__main__":
             source_run_id="run_001",
         )
         assert req_path.exists()
-        with open(req_path) as f:
+        with open(req_path, encoding="utf-8") as f:
             req = json.load(f)
         assert req["target_client_id"] == 7
         print("[3/4] Unlearning request created")
@@ -284,7 +284,7 @@ if __name__ == "__main__":
         manifest_path = build_manifest(
             run_dir=run_dir, run_id="test", run_seed=42, total_rounds=10,
         )
-        with open(manifest_path) as f:
+        with open(manifest_path, encoding="utf-8") as f:
             m = json.load(f)
         assert "unlearning_request.json" in m["file_hashes"]
         assert len(m["file_hashes"]) == 5

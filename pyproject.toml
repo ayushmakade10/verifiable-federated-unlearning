@@ -29,3 +29,24 @@ packages = [
     "experiments",
     "tests",
 ]
+
+# ── Pylint ───────────────────────────────────────────────────
+[tool.pylint.main]
+# Allow Pylint to load numpy's C extensions for proper introspection.
+extension-pkg-allow-list = ["numpy"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0103",   # invalid-name: variables in __main__ blocks flagged as constants
+    "W0621",   # redefined-outer-name: function params shadowing __main__ vars
+    "R0402",   # consider-using-from-import: style preference, not a defect
+    "W0718",   # broad-exception-caught: acceptable in self-test fallback paths
+    "R0801",   # duplicate-code: argparse boilerplate across scripts is expected
+]
+
+[tool.pylint.design]
+max-args = 12
+max-positional-arguments = 10
+max-locals = 55
+max-attributes = 10
+max-statements = 90

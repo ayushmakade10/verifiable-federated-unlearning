@@ -48,7 +48,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import math
 import random
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -72,12 +71,23 @@ class ParticipationLog:
         num_clients: int,
         participation_rate: float,
         rounds: Optional[List[Dict[str, Any]]] = None,
+        available_clients: Optional[List[int]] = None,
     ) -> None:
         self.run_id = run_id
         self.run_seed = run_seed
         self.num_clients = num_clients
         self.participation_rate = participation_rate
         self._rounds: List[Dict[str, Any]] = list(rounds) if rounds else []
+
+        # The actual client pool used for selection. For original runs
+        # this is [0..num_clients-1]. For gold retraining runs with a
+        # removed client, this has a gap (e.g. [0..6, 8..49]).
+        # Critical for verify_selection_seeds() correctness.
+        if available_clients is not None:
+            self.available_clients = sorted(available_clients)
+        else:
+            # Fallback: assume consecutive IDs (original run).
+            self.available_clients = list(range(num_clients))
 
         # Indices — built lazily.
         self._round_index: Optional[Dict[int, Dict[str, Any]]] = None
@@ -136,6 +146,7 @@ class ParticipationLog:
             "run_id": self.run_id,
             "run_seed": self.run_seed,
             "num_clients": self.num_clients,
+            "available_clients": self.available_clients,
             "participation_rate": self.participation_rate,
             "rounds": self._rounds,
         }
@@ -144,7 +155,7 @@ class ParticipationLog:
         """Write the log to a JSON file on disk."""
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
@@ -158,7 +169,7 @@ class ParticipationLog:
         if not path.exists():
             raise FileNotFoundError(f"Participation log not found: {path}")
 
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         return cls(
@@ -167,6 +178,7 @@ class ParticipationLog:
             num_clients=data["num_clients"],
             participation_rate=data["participation_rate"],
             rounds=data["rounds"],
+            available_clients=data.get("available_clients"),  # None → fallback
         )
 
     # ── Index building ───────────────────────────────────────────
@@ -287,14 +299,7 @@ class ParticipationLog:
             # Verify the client selection matches.
             num_selected = max(1, round(self.num_clients * self.participation_rate))
             rng = random.Random(logged_seed)
-            available_clients = sorted(
-                int(k) for k in entry["num_samples_per_client"].keys()
-            )
-            # We need to know the full client pool, not just who was selected.
-            # For verification, we reconstruct from num_clients and check
-            # that the selection is consistent with the seed.
-            all_clients = list(range(self.num_clients))
-            expected_selection = sorted(rng.sample(all_clients, num_selected))
+            expected_selection = sorted(rng.sample(self.available_clients, num_selected))
 
             if sorted(entry["selected_clients"]) != expected_selection:
                 return False
@@ -318,13 +323,14 @@ if __name__ == "__main__":
 
     print("participation_log.py: running verification\n")
 
-    # 1. Build a log.
+    # 1. Build a log (original run — consecutive client IDs, fallback path).
     log = ParticipationLog(
         run_id="test_run",
         run_seed=42,
         num_clients=10,
         participation_rate=0.4,
     )
+    assert log.available_clients == list(range(10)), "Fallback should be [0..9]"
     log.add_round(
         round_id=0,
         selection_seed=derive_seed(42, "client_selection_round_0"),
@@ -346,28 +352,28 @@ if __name__ == "__main__":
         test_loss=2.1,
     )
     assert len(log) == 2
-    print("[1/6] Built log with 2 rounds")
+    print("[1/8] Built log with 2 rounds")
 
     # 2. Query by round.
     r0 = log.get_round(0)
     assert r0["test_accuracy"] == 0.15
-    print("[2/6] get_round() works")
+    print("[2/8] get_round() works")
 
     # 3. Query by client.
     assert log.get_client_rounds(5) == [0, 1]
     assert log.get_client_rounds(7) == [0]
     assert log.get_client_rounds(8) == []
-    print("[3/6] get_client_rounds() works")
+    print("[3/8] get_client_rounds() works")
 
     # 4. First participation.
     assert log.get_first_participation(5) == 0
     assert log.get_first_participation(9) == 1
     assert log.get_first_participation(8) is None
-    print("[4/6] get_first_participation() works")
+    print("[4/8] get_first_participation() works")
 
     # 5. Hash chain verification.
     assert log.verify_hash_chain() is True
-    print("[5/6] Hash chain verified (consistent)")
+    print("[5/8] Hash chain verified (consistent)")
 
     # 6. Save/load round-trip.
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
@@ -377,6 +383,49 @@ if __name__ == "__main__":
     assert len(loaded) == 2
     assert loaded.get_round(0)["test_accuracy"] == 0.15
     assert loaded.get_client_rounds(5) == [0, 1]
-    print(f"[6/6] Save/load round-trip via {tmp}")
+    assert loaded.available_clients == list(range(10))
+    print(f"[6/8] Save/load round-trip via {tmp}")
+
+    # 7. available_clients persists through save/load.
+    with open(tmp, encoding="utf-8") as f:
+        raw = json.load(f)
+    assert "available_clients" in raw, "available_clients must be in JSON"
+    assert raw["available_clients"] == list(range(10))
+    print("[7/8] available_clients serialised and loaded correctly")
+
+    # 8. Gold retraining case — gap in client pool.
+    #    Simulate removing client 5 from a pool of 10.
+    gold_clients = [0, 1, 2, 3, 4, 6, 7, 8, 9]  # client 5 removed
+    gold_log = ParticipationLog(
+        run_id="gold_test",
+        run_seed=99,
+        num_clients=9,  # 9 remaining clients
+        participation_rate=0.4,
+        available_clients=gold_clients,
+    )
+    assert gold_log.available_clients == gold_clients
+
+    # Build a round using the gapped client pool.
+    sel_seed = derive_seed(99, "client_selection_round_0")
+    rng = random.Random(sel_seed)
+    num_sel = max(1, round(9 * 0.4))
+    selected = sorted(rng.sample(gold_clients, num_sel))
+
+    gold_log.add_round(
+        round_id=0,
+        selection_seed=sel_seed,
+        selected_clients=selected,
+        num_samples_per_client={c: 100 for c in selected},
+        global_model_hash_pre="xxx",
+        global_model_hash_post="yyy",
+        test_accuracy=0.80,
+        test_loss=0.6,
+    )
+    # verify_selection_seeds must pass with the gapped pool.
+    assert gold_log.verify_selection_seeds(99) is True, \
+        "verify_selection_seeds must work with gapped client pool"
+    # And must fail with the wrong seed.
+    assert gold_log.verify_selection_seeds(100) is False
+    print("[8/8] Gold retraining (gapped client pool) verified correctly")
 
     print("\nparticipation_log.py: all checks passed ✓")

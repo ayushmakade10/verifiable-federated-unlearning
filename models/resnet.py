@@ -50,6 +50,7 @@ class BasicBlock(nn.Module):
         self.downsample = downsample
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass with residual connection."""
         identity = x
 
         out = F.relu(self.bn1(self.conv1(x)))
@@ -130,6 +131,7 @@ class ResNet18CIFAR(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Forward pass through all ResNet layers."""
         out = F.relu(self.bn1(self.conv1(x)))
 
         out = self.layer1(out)
