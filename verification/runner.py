@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -132,10 +133,20 @@ def run_verification(
 
     # ── Load provider checkpoints (for Check 4) ──────────────────
     provider_checkpoints = []
+    provider_rounds: List[int] = []
+    gold_rounds: List[int] = []
     if "checkpoint_trajectory" in active_checks:
         provider_checkpoints = _load_provider_checkpoints(
             provider_bundle_path,
         )
+        provider_rounds = _extract_checkpoint_rounds(
+            provider_bundle_path / "checkpoints",
+        )
+        # Gold trials share the same round numbers; extract from trial 0.
+        if gold_checkpoint_sets:
+            gold_rounds = _extract_checkpoint_rounds(
+                gold_base_path / "trial_00" / "checkpoints",
+            )
         logger.info(
             "Loaded %d provider checkpoints", len(provider_checkpoints),
         )
@@ -203,6 +214,10 @@ def run_verification(
             check_results["checkpoint_trajectory"] = run_trajectory(
                 provider_checkpoints, gold_checkpoint_sets,
                 cal.pairwise_matrix,
+                provider_rounds=provider_rounds or None,
+                gold_rounds=gold_rounds or None,
+                calibrated_threshold=cal.threshold,
+                calibrated_medians=cal.reference_medians,
             )
         else:
             check_results["checkpoint_trajectory"] = CheckResult(
@@ -292,6 +307,22 @@ def _load_provider_checkpoints(
         return []
     ckpt_files = sorted(ckpt_dir.glob("*.pt"))
     return [torch.load(f, weights_only=True) for f in ckpt_files]
+
+
+def _extract_checkpoint_rounds(ckpt_dir: Path) -> List[int]:
+    """Extract sorted round numbers from checkpoint filenames.
+
+    Parses filenames like ``round_050.pt`` → 50.  Returns an empty
+    list if the directory does not exist.
+    """
+    if not ckpt_dir.exists():
+        return []
+    rounds = []
+    for filepath in sorted(ckpt_dir.glob("*.pt")):
+        match = re.match(r"round_(\d+)", filepath.stem)
+        if match:
+            rounds.append(int(match.group(1)))
+    return rounds
 
 
 def _build_evaluation_loaders(
