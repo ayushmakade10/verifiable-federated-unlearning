@@ -212,6 +212,7 @@ def _evaluate_bundle(
     experiment_results: Dict[str, Any] = {}
 
     for level in EVALUATION_ORDER:
+
         logger.info(
             "  Verifying %s at '%s' assurance...",
             experiment_name, level,
