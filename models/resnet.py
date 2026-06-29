@@ -145,13 +145,26 @@ class ResNet18CIFAR(nn.Module):
         return out
 
 
-def build_model(num_classes: int = 10) -> ResNet18CIFAR:
+def build_model(
+    num_classes: int = 10,
+    architecture: str = "resnet18",
+) -> nn.Module:
     """Factory function — single entry point for the rest of the codebase.
 
     All other modules call this instead of instantiating the class
     directly, so swapping architectures later requires changing only
     this function.
+
+    Args:
+        num_classes: Number of output classes (default 10 for CIFAR-10).
+        architecture: "resnet18" (default) builds the CIFAR-adapted
+            ResNet-18; "convnet" builds the QuickDrop ConvNet (Method 5).
+            The default keeps every existing caller on the ResNet path
+            with byte-identical behaviour.
     """
+    if architecture == "convnet":
+        from models.convnet import build_convnet
+        return build_convnet(num_classes=num_classes)
     return ResNet18CIFAR(num_classes=num_classes)
 
 

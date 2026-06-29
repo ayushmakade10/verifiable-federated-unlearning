@@ -1,0 +1,50 @@
+# ============================================================
+# Verifiable Federated Unlearning — QuickDrop (Method 5) Config
+# ============================================================
+# Identical to default.yaml (the standardised evaluation world the
+# ConvNet gold and QuickDrop provider were trained in: 50 clients,
+# Dirichlet alpha=0.3, 200 rounds, 0.4 participation, SGD lr=0.01
+# momentum=0.9 wd=5e-4) EXCEPT the model architecture is ConvNet.
+# Used by the QuickDrop bundle builder (frozen into each bundle) and
+# the QuickDrop evaluator (drives build_model's ConvNet dispatch).
+# ============================================================
+
+project_name: "verifiable-federated-unlearning"
+
+# ── Data & Partitioning ─────────────────────────────────────
+data:
+  dataset: "cifar10"
+  num_clients: 50
+  alpha: 0.3
+  batch_size: 64
+  data_root: "./data/raw"
+
+# ── Model ────────────────────────────────────────────────────
+model:
+  architecture: "convnet"      # Method 5: QuickDrop ConvNet (vs resnet18 default).
+  num_classes: 10
+
+# ── Federation (FedAvg) ─────────────────────────────────────
+federation:
+  num_rounds: 200
+  local_epochs: 5
+  participation_rate: 0.4
+  learning_rate: 0.01
+  momentum: 0.9
+  weight_decay: 0.0005
+  optimizer: "sgd"
+
+# ── Checkpointing ───────────────────────────────────────────
+checkpoint:
+  save_every_n_rounds: 10
+  save_final: true
+  output_dir: "./outputs"
+
+# ── Gold Standard Retraining ────────────────────────────────
+gold_standard:
+  num_trials: 10
+
+# ── Reproducibility ─────────────────────────────────────────
+reproducibility:
+  root_seed: 42
+  deterministic_cudnn: true

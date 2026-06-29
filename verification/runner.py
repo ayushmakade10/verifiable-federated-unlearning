@@ -106,7 +106,10 @@ def run_verification(
     provider_sd = torch.load(
         provider_bundle_path / "final_model.pt", weights_only=True,
     )
-    provider_model = build_model(num_classes=config.model.num_classes)
+    provider_model = build_model(
+        num_classes=config.model.num_classes,
+        architecture=config.model.architecture,
+    )
     provider_model.load_state_dict(provider_sd)
     provider_model = provider_model.to(device)
 
@@ -118,6 +121,7 @@ def run_verification(
     logger.info("Loading %d gold models...", num_trials)
     gold_state_dicts, gold_models = _load_gold_models(
         gold_base_path, num_trials, config.model.num_classes, device,
+        architecture=config.model.architecture,
     )
 
     # ── Load gold checkpoints (for Check 4) ──────────────────────
@@ -256,6 +260,7 @@ def _load_gold_models(
     num_trials: int,
     num_classes: int,
     device: torch.device,
+    architecture: str = "resnet18",
 ) -> tuple[List[Dict[str, torch.Tensor]], List[torch.nn.Module]]:
     """Load all gold model state_dicts and instantiated models."""
     state_dicts = []
@@ -264,7 +269,7 @@ def _load_gold_models(
         path = gold_base_path / f"trial_{trial:02d}" / "final_model.pt"
         sd = torch.load(path, weights_only=True)
         state_dicts.append(sd)
-        model = build_model(num_classes=num_classes)
+        model = build_model(num_classes=num_classes, architecture=architecture)
         model.load_state_dict(sd)
         model = model.to(device)
         models.append(model)

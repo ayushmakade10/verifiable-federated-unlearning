@@ -105,8 +105,15 @@ def directional_cosine(
         Cosine similarity as a float in [-1, 1].
     """
     provider_vec = flatten_learnable_params(provider_sd)
-    gold_vec = flatten_learnable_params(gold_sd)
-    original_vec = flatten_learnable_params(original_sd)
+    # Co-locate all vectors on the provider's device before the vector math.
+    # This is a no-op whenever the three state_dicts already share a device
+    # (the ResNet path, and the gold-vs-gold calibration where every input is
+    # co-located) — `.to(same_device)` returns the same tensor, so existing
+    # results stay byte-identical. It only changes the previously-broken case
+    # where artifacts were saved on different devices (e.g. a CPU provider
+    # bundle vs CUDA gold/original for the ConvNet/QuickDrop path).
+    gold_vec = flatten_learnable_params(gold_sd).to(provider_vec.device)
+    original_vec = flatten_learnable_params(original_sd).to(provider_vec.device)
 
     delta_provider = provider_vec - gold_vec
     delta_original = original_vec - gold_vec
